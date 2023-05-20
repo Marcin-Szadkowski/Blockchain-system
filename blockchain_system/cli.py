@@ -1,6 +1,7 @@
 import services
 import typer
-from blockchain import Blockchain
+
+from blockchain_system.blockchain import Blockchain
 
 blockchain = Blockchain()
 app = typer.Typer()

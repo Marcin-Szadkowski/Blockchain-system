@@ -1,13 +1,18 @@
+import json
+import time
+
 import pika
+
+from blockchain_system.blockchain import Block, Record
 
 BROKER_DSN = "amqp://user:password@172.17.0.2:5672/"
 
 
-class Producer:
-    def __init__(self, broker_dsn):
+class Publisher:
+    def __init__(self):
         self.connection = None
         self.channel = None
-        self.broker_dsn = broker_dsn
+        self.broker_dsn = BROKER_DSN
 
     def connect(self):
         # Create a connection to the RabbitMQ broker using the DSN
@@ -23,13 +28,22 @@ class Producer:
         self.channel.basic_publish(
             exchange="topic_blockchain",
             routing_key=routing_key,
-            body=message,
+            body=json.dumps(message),
             properties=pika.BasicProperties(
                 delivery_mode=2
             ),  # Make messages persistent
         )
 
-        print(f"Message published: {message}")
+        print(f"Message published: {json.dumps(message)}")
+
+    def notify_add_record(self, record: Record):
+        self.publish(record.to_json(), "my_queue", "blockchain.command.mine")
+
+    def notify_show_chain(self):
+        self.publish(None, "my_queue", "blockchain.command.show_chain")
+
+    def notify_block_mined(self, block: Block):
+        self.publish(block.to_json(), "my_queue", "blockchain.event.block_mined")
 
     def disconnect(self):
         # Close the connection to the broker
@@ -39,13 +53,15 @@ class Producer:
 
 # Example usage:
 if __name__ == "__main__":
-    producer = Producer(BROKER_DSN)
+    producer = Publisher()
     producer.connect()
 
     queue_name = "my_queue"
     routing_key = "blockchain.command.mine"
-    message = "Hello, consumer!"
+    record = Record(index=1, timestamp=int(time.time()), content="A new transaction")
 
-    producer.publish(message, queue_name, routing_key)
+    # producer.publish(message, queue_name, routing_key)
+    producer.notify_add_record(record=record)
+    producer.notify_show_chain()
 
     producer.disconnect()
