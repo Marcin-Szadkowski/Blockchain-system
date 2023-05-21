@@ -1,8 +1,9 @@
 import time
+from unittest.mock import patch
 
 import pytest
 
-from blockchain_system.blockchain import Block, PendingBlock, Record
+from blockchain_system.blockchain import PendingBlock, Record
 from blockchain_system.blockchain_repository import (
     BlockchainRepository,
     PendingBlocksRepository,
@@ -15,6 +16,12 @@ def blockchain_repository():
     repo = BlockchainRepository()
     yield repo
     repo.chain = repo.chain[1:]
+
+
+@pytest.fixture(scope="session")
+def publisher_mock():
+    with patch("blockchain_system.services.Publisher") as mck:
+        yield mck
 
 
 @pytest.fixture
@@ -43,6 +50,7 @@ def pending_blocks_repository():
 def test_mine_block(
     blockchain_repository: BlockchainRepository,
     pending_blocks_repository: PendingBlocksRepository,
+    publisher_mock,
 ):
     assert (
         mine_block(
@@ -51,10 +59,6 @@ def test_mine_block(
         )
         == 1
     )
-    last_block: Block = blockchain_repository.get_last_block()
-
-    assert len(last_block.records) == 1
-    assert last_block.records[0].content == "First transaction"
     assert pending_blocks_repository.pending_blocks_count() == 1
 
     assert (
@@ -64,8 +68,5 @@ def test_mine_block(
         )
         == 2
     )
-
-    last_block: Block = blockchain_repository.get_last_block()
-    assert len(last_block.records) == 1
-    assert last_block.records[0].content == "Second transaction"
     assert pending_blocks_repository.pending_blocks_count() == 0
+    publisher_mock.return_value.notify_block_mined.assert_called()

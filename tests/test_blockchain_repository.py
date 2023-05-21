@@ -58,14 +58,16 @@ class TestPendingBlockchainRepository:
 
 class TestBlockchainRepository:
     def test_get_chain(self, blockchain_repository: BlockchainRepository):
-        block = Block(0, "0", 1234, [], "3434", 0)
-        thread = threading.Thread(target=blockchain_repository.add, args=(block,))
+        block = Block(0, "", [], 1234, [], "3434", 0)
+        thread = threading.Thread(
+            target=blockchain_repository.add_or_replace, args=(block,)
+        )
 
-        with locked_chain(blockchain_repository) as chain:
+        with locked_chain(blockchain_repository) as blockchain:
             thread.start()
             time.sleep(2)
-            assert len(chain) == 1
+            assert blockchain.length == 1
 
         thread.join()
-        chain = blockchain_repository.get_chain()
-        assert len(chain) == 2
+        blockchain = blockchain_repository.get_chain()
+        assert blockchain.length == 2

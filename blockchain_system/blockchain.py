@@ -21,7 +21,8 @@ class Record(JSONWizard):
 @dataclass
 class Block(JSONWizard):
     index: int
-    previous_hash: str  # to be deleted
+    previous_hash: str
+    side_links: list[str]
     timestamp: int  # UTC timestamp
     records: list[Record]  # or transactions
     hash: str | None = None

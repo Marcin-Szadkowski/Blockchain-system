@@ -20,7 +20,9 @@ def handle_mine_block(payload):
     record = Record.from_json(payload)
     pending_block = PendingBlock(index=1, records=[record])
     add_pending_block(
-        pending_blocks_repository=PendingBlocksRepository(), pending_block=pending_block
+        pending_blocks_repository=PendingBlocksRepository(),
+        blockchain_repository=BlockchainRepository(),
+        pending_block=pending_block,
     )
 
 

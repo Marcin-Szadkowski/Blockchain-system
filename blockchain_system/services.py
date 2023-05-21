@@ -1,3 +1,5 @@
+import copy
+import random
 import time
 from logging import getLogger
 
@@ -12,6 +14,7 @@ from blockchain_system.publisher import Publisher
 logger = getLogger(__name__)
 
 POW_DIFFICULTY = 1
+N = 2
 
 
 class InvalidProofException(Exception):
@@ -38,6 +41,18 @@ def _is_valid_proof(block: Block, block_hash) -> bool:
         block_hash.startswith("0" * POW_DIFFICULTY)
         and block_hash == block.compute_hash()
     )
+
+
+def _get_side_links(n: int, blockchain_repository: BlockchainRepository):
+    blockchain = blockchain_repository.get_chain()
+    chain = copy.deepcopy(blockchain.chain)
+    if len(chain) >= 1:
+        chain.pop()
+
+    if len(chain) <= n:
+        return [block.hash for block in chain]
+    else:
+        return random.sample(chain, n)
 
 
 def check_chain_validity(blockchain: Blockchain):
@@ -70,9 +85,8 @@ def add_block(
     if not _is_valid_proof(block, proof):
         raise InvalidProofException()
 
-    # TODO check timestamp
     block.hash = proof
-    blockchain_repository.add(block)
+    blockchain_repository.add_or_replace(block)
     logger.info("Block added to the chain")
     return True
 
@@ -81,6 +95,8 @@ def mine_block(
     pending_blocks_repository: PendingBlocksRepository,
     blockchain_repository: BlockchainRepository,
 ) -> int | None:
+    global N
+
     pending_block = pending_blocks_repository.pop()
     if not pending_block:
         return
@@ -89,19 +105,14 @@ def mine_block(
     last_block = blockchain_repository.get_last_block()
 
     new_block = Block(
-        index=last_block.index + 1,
+        index=pending_block.index,
+        side_links=_get_side_links(N, blockchain_repository),
         records=pending_block.records,
         timestamp=int(time.time()),
         previous_hash=last_block.hash,
     )
 
     proof = _proof_of_work(new_block)
-    # add_block(
-    #     blockchain_repository=blockchain_repository,
-    #     block=new_block,
-    #     proof=proof,
-    # )
-    # TODO notify block mined
     publisher = Publisher()
     new_block.hash = proof
     publisher.notify_block_mined(block=new_block)
@@ -109,12 +120,20 @@ def mine_block(
 
 
 def show_chain(blockchain_repository: BlockchainRepository) -> Blockchain:
-    chain = blockchain_repository.get_chain()
-    return Blockchain(chain=chain)
+    blockchain = blockchain_repository.get_chain()
+    return blockchain
 
 
 def add_pending_block(
-    pending_blocks_repository: PendingBlocksRepository, pending_block: PendingBlock
+    pending_blocks_repository: PendingBlocksRepository,
+    blockchain_repository: BlockchainRepository,
+    pending_block: PendingBlock,
 ) -> None:
-    pending_blocks_repository.add(block=pending_block)
+    with locked_chain(blockchain_repository) as chain:
+        last_block = blockchain_repository.get_last_block()
+        # recount actual index
+        pending_block.index = (
+            last_block.index + pending_blocks_repository.pending_blocks_count() + 1
+        )
+        pending_blocks_repository.add(block=pending_block)
     logger.info("New pending block added")

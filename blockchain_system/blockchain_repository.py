@@ -34,12 +34,13 @@ class BlockchainRepository(metaclass=Singleton):
         self.chain: list[Block] = []
         self._lock = threading.Lock()
         genesis_block = self.create_genesis_block()
-        self.add(genesis_block)
+        self.add_or_replace(genesis_block)
 
     def create_genesis_block(self) -> Block:
         genesis_block = Block(
             index=0,
             previous_hash="0",
+            side_links=[],
             hash="",
             timestamp=int(time.time()),
             records=[],
@@ -47,15 +48,35 @@ class BlockchainRepository(metaclass=Singleton):
         genesis_block.main_hash = genesis_block.compute_hash()
         return genesis_block
 
-    def add(self, block: Block) -> None:
+    def add_or_replace(self, block: Block) -> None:
         with self._lock:
             last_block = self.get_last_block()
+            if self._is_in_chain(block_to_add=block, last_block=last_block):
+                # Replace
+                self.chain[-1] = block
+                return
+
             if last_block and last_block.hash != block.previous_hash:
                 raise PreviousHashMismatchException()
             self.chain.append(block)
 
-    def get_chain(self) -> list[Block]:
-        return self.chain
+    def _is_in_chain(self, block_to_add: Block, last_block: Block) -> None:
+        penultimate_block = self.chain[-2] if len(self.chain) >= 2 else None
+
+        if not penultimate_block:
+            return False
+
+        if (
+            block_to_add.index == last_block.index
+            and penultimate_block.hash == block_to_add.previous_hash
+            and block_to_add.timestamp < last_block.timestamp
+        ):
+            return True
+
+        return False
+
+    def get_chain(self) -> Blockchain:
+        return Blockchain(chain=self.chain)
 
     def set_chain(self, blockchain: Blockchain) -> None:
         with self._lock:
