@@ -6,6 +6,8 @@ import pika
 from blockchain_system.tasks import (
     handle_block_mined,
     handle_mine_block,
+    handle_new_node,
+    handle_set_chain,
     handle_show_chain,
 )
 
@@ -17,7 +19,9 @@ logger = getLogger(__name__)
 SUBSCRIBER_TASKS_MAP = {
     "blockchain.command.mine": handle_mine_block,
     "blockchain.command.show_chain": handle_show_chain,
+    "blockchain.command.set_chain": handle_set_chain,
     "blockchain.event.block_mined": handle_block_mined,
+    "blockchain.event.new_node": handle_new_node,
 }
 
 
@@ -28,7 +32,10 @@ def route_event(ch, method, properties, body):
     logger.info(
         f"Received message: {json.loads(body)}. Routing key: {method.routing_key}"
     )
-    SUBSCRIBER_TASKS_MAP[method.routing_key](payload=json.loads(body))
+    try:
+        SUBSCRIBER_TASKS_MAP[method.routing_key](payload=json.loads(body))
+    except Exception as e:
+        logger.error(str(e))
 
 
 class Subscriber:
@@ -55,6 +62,41 @@ class Subscriber:
         # Set up the consumer to use the callback function
         self.channel.basic_consume(
             queue=self.queue_name, on_message_callback=route_event, auto_ack=True
+        )
+
+        # Start consuming messages
+        logger.info("Waiting for messages. To exit, press CTRL+C")
+        self.channel.start_consuming()
+
+
+def print_event(ch, method, properties, body):
+    print(json.loads(body))
+
+
+class CliSubscriber:
+    # Create a connection to the RabbitMQ broker using the DSN
+    def __init__(self) -> None:
+        parameters = pika.URLParameters(BROKER_DSN)
+        self.connection = pika.BlockingConnection(parameters)
+        self.channel = self.connection.channel()
+
+        # Declare the direct exchange
+        self.channel.exchange_declare(
+            exchange="topic_blockchain", exchange_type="topic"
+        )
+
+        # Declare a queue and bind it to the exchange with a routing key
+        self.queue_name = ""
+        routing_key = "blockchain.event.#"
+        self.channel.queue_declare(queue=self.queue_name)
+        self.channel.queue_bind(
+            exchange="topic_blockchain", queue=self.queue_name, routing_key=routing_key
+        )
+
+    def start_consuming(self):
+        # Set up the consumer to use the callback function
+        self.channel.basic_consume(
+            queue=self.queue_name, on_message_callback=print_event, auto_ack=True
         )
 
         # Start consuming messages

@@ -22,7 +22,7 @@ def pending_blocks_repository():
 def blockchain_repository():
     repo = BlockchainRepository()
     yield repo
-    repo.chain = []
+    repo.chain = repo.chain[1:]
 
 
 class TestPendingBlockchainRepository:
@@ -58,7 +58,7 @@ class TestPendingBlockchainRepository:
 
 class TestBlockchainRepository:
     def test_get_chain(self, blockchain_repository: BlockchainRepository):
-        block = Block(0, "mainchash", [], "somehas", "proof", 1234, [])
+        block = Block(0, "0", 1234, [], "3434", 0)
         thread = threading.Thread(target=blockchain_repository.add, args=(block,))
 
         with locked_chain(blockchain_repository) as chain:

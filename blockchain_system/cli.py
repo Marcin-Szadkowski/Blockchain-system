@@ -1,33 +1,31 @@
-import services
+import time
+
 import typer
 
-from blockchain_system.blockchain import Blockchain
+from blockchain_system.blockchain import Record
+from blockchain_system.publisher import Publisher
+from blockchain_system.subscriber import CliSubscriber
 
-blockchain = Blockchain()
 app = typer.Typer()
 
 
 @app.command()
-def mine_block():
-    response = services.mine_block(blockchain)
-    print(response)
+def listen_events():
+    subscriber = CliSubscriber()
+    subscriber.start_consuming()
 
 
 @app.command()
-def display_chain():
-    response = {"chain": blockchain.chain, "length": len(blockchain.chain)}
-    return print(response)
+def add_record(content: str):
+    record = Record(index=0, timestamp=int(time.time()), content=content)
+    publisher = Publisher()
+    publisher.notify_add_record(record=record)
 
 
 @app.command()
-def valid():
-    valid = blockchain.chain_valid(blockchain.chain)
-
-    if valid:
-        response = {"message": "The Blockchain is valid."}
-    else:
-        response = {"message": "The Blockchain is not valid."}
-    print(response)
+def show_chain():
+    publisher = Publisher()
+    publisher.notify_show_chain()
 
 
 if __name__ == "__main__":

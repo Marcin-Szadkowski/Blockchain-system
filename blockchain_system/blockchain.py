@@ -15,7 +15,7 @@ class PendingBlock(JSONWizard):
 class Record(JSONWizard):
     index: int
     timestamp: int
-    content: typing.Any
+    content: str
 
 
 @dataclass
@@ -25,11 +25,21 @@ class Block(JSONWizard):
     timestamp: int  # UTC timestamp
     records: list[Record]  # or transactions
     hash: str | None = None
+    nonce: int = 0
 
     def compute_hash(self):
         """
         Returns the hash of the block instance by first converting it
         into JSON string.
         """
-        block_string = self.to_json()
+        block_string = str(self.to_dict(exclude=["hash"]))
         return hashlib.sha256(block_string.encode()).hexdigest()
+
+
+@dataclass
+class Blockchain(JSONWizard):
+    chain: list[Block]
+
+    @property
+    def length(self):
+        return len(self.chain)

@@ -14,7 +14,7 @@ from blockchain_system.services import mine_block
 def blockchain_repository():
     repo = BlockchainRepository()
     yield repo
-    repo.chain = []
+    repo.chain = repo.chain[1:]
 
 
 @pytest.fixture

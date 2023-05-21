@@ -3,7 +3,7 @@ import time
 from contextlib import contextmanager
 from copy import deepcopy
 
-from blockchain_system.blockchain import Block, PendingBlock
+from blockchain_system.blockchain import Block, Blockchain, PendingBlock
 
 
 @contextmanager
@@ -31,7 +31,7 @@ class Singleton(type):
 
 class BlockchainRepository(metaclass=Singleton):
     def __init__(self):
-        self.chain = []
+        self.chain: list[Block] = []
         self._lock = threading.Lock()
         genesis_block = self.create_genesis_block()
         self.add(genesis_block)
@@ -56,6 +56,10 @@ class BlockchainRepository(metaclass=Singleton):
 
     def get_chain(self) -> list[Block]:
         return self.chain
+
+    def set_chain(self, blockchain: Blockchain) -> None:
+        with self._lock:
+            self.chain = blockchain.chain
 
     def get_last_block(self) -> Block:
         if not self.chain:

@@ -3,16 +3,26 @@ import time
 
 import pika
 
-from blockchain_system.blockchain import Block, Record
+from blockchain_system.blockchain import Block, Blockchain, Record
 
 BROKER_DSN = "amqp://user:password@172.17.0.2:5672/"
 
 
-class Publisher:
+class Singleton(type):
+    _instances = {}
+
+    def __call__(cls, *args, **kwargs):
+        if cls not in cls._instances:
+            cls._instances[cls] = super(Singleton, cls).__call__(*args, **kwargs)
+        return cls._instances[cls]
+
+
+class Publisher(metaclass=Singleton):
     def __init__(self):
         self.connection = None
         self.channel = None
         self.broker_dsn = BROKER_DSN
+        self.connect()
 
     def connect(self):
         # Create a connection to the RabbitMQ broker using the DSN
@@ -45,6 +55,12 @@ class Publisher:
     def notify_block_mined(self, block: Block):
         self.publish(block.to_json(), "my_queue", "blockchain.event.block_mined")
 
+    def notify_event_show_chain(self, blockchain: Blockchain):
+        self.publish(blockchain.to_json(), "my_queue", "blockchain.event.show_chain")
+
+    def notify_new_node(self):
+        self.publish(None, "my_queue", "blockchain.event.new_node")
+
     def disconnect(self):
         # Close the connection to the broker
         self.connection.close()
@@ -54,14 +70,14 @@ class Publisher:
 # Example usage:
 if __name__ == "__main__":
     producer = Publisher()
-    producer.connect()
+    # producer.connect()
 
     queue_name = "my_queue"
     routing_key = "blockchain.command.mine"
     record = Record(index=1, timestamp=int(time.time()), content="A new transaction")
 
     # producer.publish(message, queue_name, routing_key)
-    producer.notify_add_record(record=record)
+    # producer.notify_add_record(record=record)
     producer.notify_show_chain()
 
     producer.disconnect()
