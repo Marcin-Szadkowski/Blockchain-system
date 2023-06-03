@@ -20,6 +20,11 @@ def setup_logger():
     )
 
 
+def notify_new_node(publisher):
+    time.sleep(5)
+    publisher.notify_new_node()
+
+
 def miner():
     blockchain_repository = BlockchainRepository()
     pending_blocks_repository = PendingBlocksRepository()
@@ -47,9 +52,12 @@ class App:
     def start(self):
         # TODO start mining thread
         miner_thread = threading.Thread(target=miner, args=())
+        notify_new_node_thread = threading.Thread(
+            target=notify_new_node, args=(self.publisher,)
+        )
         logger.info("Starting app..")
         miner_thread.start()
-        self.publisher.notify_new_node()
+        notify_new_node_thread.start()
         self.subscriber.start_consuming()
 
 

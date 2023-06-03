@@ -35,7 +35,7 @@ def route_event(ch, method, properties, body):
     try:
         SUBSCRIBER_TASKS_MAP[method.routing_key](payload=json.loads(body))
     except Exception as e:
-        logger.error(str(e))
+        logger.error(str(e), stack_info=True)
 
 
 class Subscriber:

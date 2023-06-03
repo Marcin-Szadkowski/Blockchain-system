@@ -34,7 +34,8 @@ class Block(JSONWizard):
         into JSON string.
         """
         block_string = str(self.to_dict(exclude=["hash"]))
-        return hashlib.sha256(block_string.encode()).hexdigest()
+        _hex_string = hashlib.sha256(block_string.encode()).hexdigest()
+        return format(int(_hex_string, 16), "0>256b")
 
 
 @dataclass

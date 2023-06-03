@@ -43,7 +43,7 @@ def handle_block_mined(payload):
 def handle_new_node(payload):
     blockchain = show_chain(blockchain_repository=BlockchainRepository())
     publisher = Publisher()
-    publisher.notify_event_show_chain(blockchain)
+    publisher.notify_set_chain(blockchain)
 
 
 def handle_set_chain(payload):

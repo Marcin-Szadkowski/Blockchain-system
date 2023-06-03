@@ -61,6 +61,9 @@ class Publisher(metaclass=Singleton):
     def notify_new_node(self):
         self.publish(None, "my_queue", "blockchain.event.new_node")
 
+    def notify_set_chain(self, blockchain: Blockchain):
+        self.publish(blockchain.to_json(), "my_queue", "blockchain.command.set_chain")
+
     def disconnect(self):
         # Close the connection to the broker
         self.connection.close()

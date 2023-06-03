@@ -13,7 +13,7 @@ from blockchain_system.publisher import Publisher
 
 logger = getLogger(__name__)
 
-POW_DIFFICULTY = 1
+POW_DIFFICULTY = 16
 N = 2
 
 
