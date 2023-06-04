@@ -48,25 +48,31 @@ def _is_valid_proof(block: Block, block_hash) -> bool:
 def _get_side_links(n: int, blockchain_repository: BlockchainRepository):
     blockchain = blockchain_repository.get_chain()
     chain = copy.deepcopy(blockchain.chain)
-    if len(chain) >= 1:
-        chain.pop()
+    enumerate_chain = [(index, block) for index, block in enumerate(chain)]
 
-    if len(chain) <= n:
-        return [block.hash for block in chain]
+    if len(enumerate_chain) >= 1:
+        enumerate_chain.pop()
+
+    if len(enumerate_chain) <= n:
+        return enumerate_chain
     else:
-        return random.sample(chain, n)
+        return random.sample(enumerate_chain, n).sort()
 
 
 def check_chain_validity(blockchain: Blockchain):
     previous_hash = "0"
 
-    for block in blockchain.chain:
+    block = blockchain.chain[-1]  # Get newest block
+
+    while len(block.side_links) != 0:
         if (
             not _is_valid_proof(block, block.hash)
             or previous_hash != block.previous_hash
         ):
             return False
+
         previous_hash = block.hash
+        block = block.side_links[0][1]
 
     return True
 
