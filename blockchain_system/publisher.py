@@ -3,7 +3,7 @@ import time
 
 import pika
 
-from blockchain_system.blockchain import Block, Blockchain, Record
+from blockchain_system.blockchain import Block, Blockchain, Record, Vote
 
 BROKER_DSN = "amqp://user:password@172.17.0.2:5672/"
 
@@ -60,6 +60,16 @@ class Publisher(metaclass=Singleton):
 
     def notify_new_node(self):
         self.publish(None, "my_queue", "blockchain.event.new_node")
+
+    def notify_node_voted(self, vote: Vote):
+        self.publish(vote.to_json(), "my_queue", "blockchain.event.node_voted")
+
+    def notify_authority_node_says_hello(self, id: str, proof: str):
+        self.publish(
+            {"id": id, "proof": proof},
+            "my_queue",
+            "blockchain.event.authority_node_says_hello",
+        )
 
     def notify_set_chain(self, blockchain: Blockchain):
         self.publish(blockchain.to_json(), "my_queue", "blockchain.command.set_chain")

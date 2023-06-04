@@ -6,16 +6,22 @@ from dataclass_wizard import JSONWizard
 
 
 @dataclass
-class PendingBlock(JSONWizard):
-    index: int
-    records: list
-
-
-@dataclass
 class Record(JSONWizard):
     index: int
     timestamp: int
     content: str
+
+
+@dataclass
+class Vote(JSONWizard):
+    node_id: str
+    records: list[Record]
+
+
+@dataclass
+class PendingBlock(JSONWizard):
+    index: int
+    records: list[Record]
 
 
 @dataclass
@@ -34,8 +40,7 @@ class Block(JSONWizard):
         into JSON string.
         """
         block_string = str(self.to_dict(exclude=["hash"]))
-        _hex_string = hashlib.sha256(block_string.encode()).hexdigest()
-        return format(int(_hex_string, 16), "0>256b")
+        return hashlib.sha256(block_string.encode()).hexdigest()
 
 
 @dataclass

@@ -4,9 +4,11 @@ from logging import getLogger
 import pika
 
 from blockchain_system.tasks import (
+    handle_authority_node_says_hello,
     handle_block_mined,
     handle_mine_block,
     handle_new_node,
+    handle_node_voted,
     handle_set_chain,
     handle_show_chain,
 )
@@ -22,6 +24,8 @@ SUBSCRIBER_TASKS_MAP = {
     "blockchain.command.set_chain": handle_set_chain,
     "blockchain.event.block_mined": handle_block_mined,
     "blockchain.event.new_node": handle_new_node,
+    "blockchain.event.node_voted": handle_node_voted,
+    "blockchain.event.authority_node_says_hello": handle_authority_node_says_hello,
 }
 
 
@@ -35,7 +39,7 @@ def route_event(ch, method, properties, body):
     try:
         SUBSCRIBER_TASKS_MAP[method.routing_key](payload=json.loads(body))
     except Exception as e:
-        logger.error(str(e), stack_info=True)
+        logger.exception(e)
 
 
 class Subscriber:
@@ -71,6 +75,7 @@ class Subscriber:
 
 def print_event(ch, method, properties, body):
     print(json.loads(body))
+    print("-" * 60)
 
 
 class CliSubscriber:
