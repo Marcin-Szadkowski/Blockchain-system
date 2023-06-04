@@ -1,7 +1,9 @@
 import logging
 import threading
 import time
+import uuid
 
+from blockchain_system import settings
 from blockchain_system.blockchain_repository import (
     BlockchainRepository,
     PendingBlocksRepository,
@@ -50,7 +52,12 @@ class App:
         self.publisher = publisher
 
     def start(self):
-        # TODO start mining thread
+        my_uuid = uuid.uuid4().hex
+        # # Settings
+        settings.IS_TRUSTED_NODE.set(True)
+        settings.MY_UUID.set(my_uuid)
+
+        # # Start threads
         miner_thread = threading.Thread(target=miner, args=())
         notify_new_node_thread = threading.Thread(
             target=notify_new_node, args=(self.publisher,)

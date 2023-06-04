@@ -1,8 +1,10 @@
+import abc
 import copy
 import random
 import time
 from logging import getLogger
 
+from blockchain_system import settings
 from blockchain_system.blockchain import Block, Blockchain, PendingBlock
 from blockchain_system.blockchain_repository import (
     BlockchainRepository,
@@ -25,21 +27,58 @@ class InvalidBlockchainException(Exception):
     pass
 
 
+class ISystemAuthority(metaclass=abc.ABCMeta):
+    @abc.abstractmethod
+    def get_authority_proof(self, *args, **kwargs) -> str:
+        raise NotImplementedError()
+
+    @abc.abstractmethod
+    def verify_authority_proof(self, *args, **kwargs) -> bool:
+        raise NotImplementedError()
+
+    @abc.abstractmethod
+    def am_i_trusted_node(self, *args, **kwargs) -> bool:
+        raise NotImplementedError()
+
+
+class DummySystemAuthority(ISystemAuthority):
+    def get_authority_proof(self, node_id: str) -> str:
+        return node_id
+
+    def verify_authority_proof(self, proof: str):
+        return True
+
+    def am_i_trusted_node(self, *args, **kwargs) -> bool:
+        return settings.IS_TRUSTED_NODE.get()
+
+
+def am_i_trusted_node() -> bool:
+    system_authority = DummySystemAuthority()
+    return system_authority.am_i_trusted_node()
+
+
+def get_my_uuid() -> str | None:
+    return settings.MY_UUID.get()
+
+
 def _proof_of_work(block: Block):
     block.nonce = 0
 
     computed_hash = block.compute_hash()
-    while not computed_hash.startswith("0" * POW_DIFFICULTY):
+    hash_bin = format(int(computed_hash, 16), "0>256b")
+
+    while not hash_bin.startswith("0" * POW_DIFFICULTY):
         block.nonce += 1
         computed_hash = block.compute_hash()
+        hash_bin = format(int(computed_hash, 16), "0>256b")
 
     return computed_hash
 
 
 def _is_valid_proof(block: Block, block_hash) -> bool:
+    hash_bin = format(int(block_hash, 16), "0>256b")
     return (
-        block_hash.startswith("0" * POW_DIFFICULTY)
-        and block_hash == block.compute_hash()
+        hash_bin.startswith("0" * POW_DIFFICULTY) and block_hash == block.compute_hash()
     )
 
 
@@ -137,3 +176,34 @@ def add_pending_block(
         )
         pending_blocks_repository.add(block=pending_block)
     logger.info("New pending block added")
+
+
+def vote_for_miner() -> str:
+    """
+    Returns uuid of miner. Assume that there is at least one authority node in system.
+    """
+    known_miners = settings.KNOWN_MINERS_LIST.get()
+    if known_miners is None:
+        logger.error("Cannot vote for miner. Cannot find any.")
+        return
+
+    return random.sample(known_miners, 1)[0]
+
+
+def add_authority_node(node_id: str, authority_proof: str) -> None:
+    known_miners_list = settings.KNOWN_MINERS_LIST.get()
+
+    if not node_id in known_miners_list and verify_authority_proof(authority_proof):
+        logger.info("Updated known miners list.")
+        known_miners_list.append(node_id)
+        settings.KNOWN_MINERS_LIST.set(known_miners_list)
+
+
+def get_authority_proof(node_id: str) -> str:
+    system_authority = DummySystemAuthority()
+    return system_authority.get_authority_proof(node_id=node_id)
+
+
+def verify_authority_proof(authority_proof: str) -> bool:
+    system_authority = DummySystemAuthority()
+    return system_authority.verify_authority_proof(authority_proof)
