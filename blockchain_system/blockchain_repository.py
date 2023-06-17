@@ -4,6 +4,9 @@ from contextlib import contextmanager
 from copy import deepcopy
 
 from blockchain_system.blockchain import Block, Blockchain, PendingBlock
+from logging import getLogger
+
+logger = getLogger(__name__)
 
 
 @contextmanager
@@ -45,31 +48,38 @@ class BlockchainRepository(metaclass=Singleton):
             timestamp=int(time.time()),
             records=[],
         )
-        genesis_block.main_hash = genesis_block.compute_hash()
+        # genesis_block.main_hash = genesis_block.compute_hash()
         return genesis_block
 
     def add_or_replace(self, block: Block) -> None:
         with self._lock:
             last_block = self.get_last_block()
-            if self._is_in_chain(block_to_add=block, last_block=last_block):
-                # Replace
-                self.chain[-1] = block
+            if last_block and self._is_in_chain(
+                block_to_add=block, last_block=last_block
+            ):
+                if last_block.timestamp > block.timestamp:
+                    # Replace
+                    self.chain[-1] = block
                 return
 
             if last_block and last_block.hash != block.previous_hash:
-                raise PreviousHashMismatchException()
+                raise PreviousHashMismatchException(
+                    f"Last block hash: '{last_block.hash}', block previous hash: '{block.previous_hash}'"
+                )
             self.chain.append(block)
 
     def _is_in_chain(self, block_to_add: Block, last_block: Block) -> None:
-        penultimate_block = self.chain[-2] if len(self.chain) >= 2 else None
+        logger.info(f"Chain: {self.chain}")
+        logger.info(f"Comparing blocks {block_to_add}:{last_block}")
+        # penultimate_block = self.chain[-2] if len(self.chain) >= 2 else None
 
-        if not penultimate_block:
-            return False
+        # if not penultimate_block:
+        #     return False
 
         if (
             block_to_add.index == last_block.index
-            and penultimate_block.hash == block_to_add.previous_hash
-            and block_to_add.timestamp < last_block.timestamp
+            and last_block.hash == block_to_add.hash
+            # and block_to_add.timestamp < last_block.timestamp
         ):
             return True
 

@@ -7,6 +7,7 @@ from blockchain_system.blockchain import Block, Blockchain, PendingBlock
 from blockchain_system.blockchain_repository import (
     BlockchainRepository,
     PendingBlocksRepository,
+    StakeRegister,
     locked_chain,
 )
 from blockchain_system.publisher import Publisher
@@ -14,6 +15,7 @@ from blockchain_system.publisher import Publisher
 logger = getLogger(__name__)
 
 POW_DIFFICULTY = 16
+VALIDATORS_COUNT = 4
 N = 2
 
 
@@ -137,3 +139,68 @@ def add_pending_block(
         )
         pending_blocks_repository.add(block=pending_block)
     logger.info("New pending block added")
+
+
+def mint_block(
+    pending_blocks_repository: PendingBlocksRepository,
+    blockchain_repository: BlockchainRepository,
+):
+    logger.info("Minting block.")
+    pending_block = pending_blocks_repository.pop()
+    if not pending_block:
+        return
+
+    last_block = blockchain_repository.get_last_block()
+
+    new_block = Block(
+        index=pending_block.index,
+        side_links=_get_side_links(N, blockchain_repository),
+        records=pending_block.records,
+        timestamp=int(time.time()),
+        previous_hash=last_block.hash,
+    )
+    new_block.hash = new_block.compute_hash()
+    return new_block
+
+
+def add_block_v2(
+    blockchain_repository: BlockchainRepository,
+    block: Block,
+    forger_address: str,
+):
+    blockchain_repository.add_or_replace(block)
+    logger.info("Block added to the chain")
+    return True
+
+
+def update_stake_register(
+    address: str,
+    delta: float,
+    stake_register: StakeRegister,
+) -> None:
+    logger.info(f"Registering stake difference")
+    stake_register.update_stake(address=address, delta=delta)
+
+
+def vote_for_validators(
+    stake_register: StakeRegister,
+) -> list[str]:
+    """
+    Return list of address of candidates.
+    """
+    highest_to_lowest_stake = stake_register.get_highest_stake_addresses()
+
+    return highest_to_lowest_stake[:VALIDATORS_COUNT]
+
+
+def vote_for_miner(*args, **kwargs):
+    # pass publisher as dependency
+    pass
+
+
+def _calculate_stake(*args, **kwargs):
+    pass
+
+
+def _verify_signature(*args, **kwargs):
+    pass
