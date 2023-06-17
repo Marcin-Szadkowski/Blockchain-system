@@ -117,3 +117,25 @@ class PendingBlocksRepository(metaclass=Singleton):
             self.pending_blocks = temp
 
         return popped_block
+
+
+class StakeRegister:
+    def __init__(self, initial_stake: dict[str, float] | None = None) -> None:
+        self.stake_map = initial_stake if initial_stake else {}
+
+    def update_stake(self, address: str, delta: float) -> None:
+        if address in self.stake_map:
+            self.stake_map[address] += delta
+        else:
+            self.stake_map[address] = delta
+
+    def get_highest_stake_addresses(self) -> list[str]:
+        """
+        Return addresses sorted from high to low stake
+        """
+        return [
+            key
+            for key, value in sorted(
+                self.stake_map.items(), key=lambda x: x[1], reverse=True
+            )
+        ]
