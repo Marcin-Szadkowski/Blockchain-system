@@ -7,6 +7,7 @@ from blockchain_system.blockchain import Block, Blockchain, PendingBlock
 from blockchain_system.blockchain_repository import (
     BlockchainRepository,
     PendingBlocksRepository,
+    StakeRegister,
     locked_chain,
 )
 from blockchain_system.publisher import Publisher
@@ -14,8 +15,10 @@ from blockchain_system.publisher import Publisher
 logger = getLogger(__name__)
 
 POW_DIFFICULTY = 16
-N = 2
+VALIDATORS_COUNT = 4
 
+N = 4
+m = 2
 
 class InvalidProofException(Exception):
     pass
@@ -46,25 +49,31 @@ def _is_valid_proof(block: Block, block_hash) -> bool:
 def _get_side_links(n: int, blockchain_repository: BlockchainRepository):
     blockchain = blockchain_repository.get_chain()
     chain = copy.deepcopy(blockchain.chain)
-    if len(chain) >= 1:
-        chain.pop()
+    enumerate_chain = [(index, block) for index, block in enumerate(chain)]
 
-    if len(chain) <= n:
-        return [block.hash for block in chain]
+    if len(enumerate_chain) >= 1:
+        enumerate_chain.pop()
+
+    if len(enumerate_chain) <= n:
+        return enumerate_chain
     else:
-        return random.sample(chain, n)
+        return random.sample(enumerate_chain, n).sort()
 
 
 def check_chain_validity(blockchain: Blockchain):
     previous_hash = "0"
 
-    for block in blockchain.chain:
+    block = blockchain.chain[-1]  # Get newest block
+
+    while len(block.side_links) != 0:
         if (
             not _is_valid_proof(block, block.hash)
             or previous_hash != block.previous_hash
         ):
             return False
+
         previous_hash = block.hash
+        block = block.side_links[0][1]
 
     return True
 
@@ -137,3 +146,68 @@ def add_pending_block(
         )
         pending_blocks_repository.add(block=pending_block)
     logger.info("New pending block added")
+
+
+def mint_block(
+    pending_blocks_repository: PendingBlocksRepository,
+    blockchain_repository: BlockchainRepository,
+):
+    logger.info("Minting block.")
+    pending_block = pending_blocks_repository.pop()
+    if not pending_block:
+        return
+
+    last_block = blockchain_repository.get_last_block()
+
+    new_block = Block(
+        index=pending_block.index,
+        side_links=_get_side_links(N, blockchain_repository),
+        records=pending_block.records,
+        timestamp=int(time.time()),
+        previous_hash=last_block.hash,
+    )
+    new_block.hash = new_block.compute_hash()
+    return new_block
+
+
+def add_block_v2(
+    blockchain_repository: BlockchainRepository,
+    block: Block,
+    forger_address: str,
+):
+    blockchain_repository.add_or_replace(block)
+    logger.info("Block added to the chain")
+    return True
+
+
+def update_stake_register(
+    address: str,
+    delta: float,
+    stake_register: StakeRegister,
+) -> None:
+    logger.info(f"Registering stake difference")
+    stake_register.update_stake(address=address, delta=delta)
+
+
+def vote_for_validators(
+    stake_register: StakeRegister,
+) -> list[str]:
+    """
+    Return list of address of candidates.
+    """
+    highest_to_lowest_stake = stake_register.get_highest_stake_addresses()
+
+    return highest_to_lowest_stake[:VALIDATORS_COUNT]
+
+
+def vote_for_miner(*args, **kwargs):
+    # pass publisher as dependency
+    pass
+
+
+def _calculate_stake(*args, **kwargs):
+    pass
+
+
+def _verify_signature(*args, **kwargs):
+    pass

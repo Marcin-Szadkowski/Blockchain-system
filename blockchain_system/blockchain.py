@@ -1,5 +1,4 @@
 import hashlib
-import typing
 from dataclasses import dataclass
 
 from dataclass_wizard import JSONWizard
@@ -20,6 +19,8 @@ class Record(JSONWizard):
 
 @dataclass
 class Block(JSONWizard):
+    # TODO we have to add signature
+
     index: int
     previous_hash: str
     side_links: list[str]
@@ -35,7 +36,7 @@ class Block(JSONWizard):
         """
         block_string = str(self.to_dict(exclude=["hash"]))
         _hex_string = hashlib.sha256(block_string.encode()).hexdigest()
-        return format(int(_hex_string, 16), "0>256b")
+        return hashlib.sha256(block_string.encode()).hexdigest()
 
 
 @dataclass
