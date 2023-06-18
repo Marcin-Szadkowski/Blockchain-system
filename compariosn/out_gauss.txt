@@ -1,0 +1,23 @@
+Mean for N=5: 3.57. Iterations: it=100. Nodes: 100
+Mean for N=10: 2.92. Iterations: it=100. Nodes: 100
+Mean for N=20: 2.59. Iterations: it=100. Nodes: 100
+
+Mean for N=5: 3.423. Iterations: it=1000. Nodes: 100
+Mean for N=10: 2.923. Iterations: it=1000. Nodes: 100
+Mean for N=20: 2.539. Iterations: it=1000. Nodes: 100
+
+Mean for N=5: 3.443. Iterations: it=10000. Nodes: 100
+Mean for N=10: 2.919. Iterations: it=10000. Nodes: 100
+Mean for N=20: 2.5438. Iterations: it=10000. Nodes: 100
+
+Mean for N=5: 5.06. Iterations: it=100. Nodes: 1000
+Mean for N=10: 4.16. Iterations: it=100. Nodes: 1000
+Mean for N=20: 3.64. Iterations: it=100. Nodes: 1000
+
+Mean for N=5: 4.978. Iterations: it=1000. Nodes: 1000
+Mean for N=10: 4.146. Iterations: it=1000. Nodes: 1000
+Mean for N=20: 3.617. Iterations: it=1000. Nodes: 1000
+
+Mean for N=5: 6.29. Iterations: it=100. Nodes: 10000
+Mean for N=10: 5.42. Iterations: it=100. Nodes: 10000
+Mean for N=20: 4.62. Iterations: it=100. Nodes: 10000

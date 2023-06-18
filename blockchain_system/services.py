@@ -16,8 +16,9 @@ logger = getLogger(__name__)
 
 POW_DIFFICULTY = 16
 VALIDATORS_COUNT = 4
-N = 2
 
+N = 4
+m = 2
 
 class InvalidProofException(Exception):
     pass
