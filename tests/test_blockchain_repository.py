@@ -7,6 +7,7 @@ from blockchain_system.blockchain import Block, PendingBlock
 from blockchain_system.blockchain_repository import (
     BlockchainRepository,
     PendingBlocksRepository,
+    StakeRegister,
     locked_chain,
 )
 
@@ -71,3 +72,36 @@ class TestBlockchainRepository:
         thread.join()
         blockchain = blockchain_repository.get_chain()
         assert blockchain.length == 2
+
+
+class TestStakeRegister:
+    def test_initial_stake(self):
+        register = StakeRegister()
+        assert register.stake_map == {}
+
+    def test_updated_stake_existing_address(self):
+        register = StakeRegister({"addr1": 100, "addr2": 200})
+        register.update_stake("addr1", 50)
+        assert register.stake_map == {"addr1": 150, "addr2": 200}
+
+    def test_updated_stake_new_address(self):
+        register = StakeRegister({"addr1": 100})
+        register.update_stake("addr2", 150)
+        assert register.stake_map == {"addr1": 100, "addr2": 150}
+
+    def test_get_highest_stake_addresses(self):
+        register = StakeRegister(
+            {"addr1": 300, "addr2": 200, "addr3": 400, "addr4": 100}
+        )
+        highest_stakes = register.get_highest_stake_addresses()
+        assert highest_stakes == ["addr3", "addr1", "addr2", "addr4"]
+
+    def test_get_highest_stake_addresses_empty(self):
+        register = StakeRegister()
+        highest_stakes = register.get_highest_stake_addresses()
+        assert highest_stakes == []
+
+    def test_get_highest_stake_addresses_single_address(self):
+        register = StakeRegister({"addr1": 100})
+        highest_stakes = register.get_highest_stake_addresses()
+        assert highest_stakes == ["addr1"]
